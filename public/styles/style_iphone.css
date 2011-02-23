@@ -110,7 +110,7 @@ body {
 
 #activity {
   width: 320px;
-  height: 300px;
+/*  height: 300px;*/
   overflow: auto;
 }
 
@@ -246,3 +246,6 @@ div#activity span.conversation {
   margin-left: 4px;
 }
 
+div.input_container p.login_para {
+  text-align: center;
+}

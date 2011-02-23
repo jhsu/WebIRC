@@ -3,18 +3,27 @@ require "./lib/connections"
 require "./lib/rss"
 require "sinatra"
 require "json"
+require 'digest/sha1'
 
 mime_type :json, "application/json"
 mime_type :rss, "application/rss+xml"
 mime_type :raw, "application/octet-stream"
 
+IPHONE_USER_AGENT = /iPhone.*Apple.*Mobile/
+
 configure do
   @@config = WebIRCConfig.new
   @@rss_feed = RSSFeed.new
   @@connections = Connections.new(@@rss_feed)
+  characters = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a
+  @@salt = Array.new(15){characters[rand(characters.size)]}.join
 end
 
 helpers do
+  def encrypt(password)
+    Digest::SHA1.hexdigest("--#{@@salt}--#{password}--")
+  end
+  
   def config(key)
     @@config[key]
   end
@@ -27,9 +36,19 @@ helpers do
     response["WWW-Authenticate"] = %(Basic realm="WebIRC") and throw(:halt, [401, "Not authorized\n"]) and return unless !protected? or authorized?
   end
   
+  def protected_home!
+    unless !protected? or authorized?
+      redirect request.env['SCRIPT_NAME'] + '/login'
+    end
+  end
+  
   def authorized?
     @auth ||=  Rack::Auth::Basic::Request.new(request.env)
-    @auth.provided? and @auth.basic? and @auth.credentials and @auth.credentials == [@@config["web_user"], @@config["web_password"]]
+    if @auth.provided?
+      return (@auth.provided? and @auth.basic? and @auth.credentials and @auth.credentials == [@@config["web_user"], @@config["web_password"]])
+    else
+      return ([request.cookies["u"], request.cookies["p"]] == [@@config["web_user"], encrypt(@@config["web_password"])])
+    end
   end
   
   def get_history_iphone(last_read)
@@ -83,8 +102,8 @@ helpers do
 end
 
 
-get "/", :agent => /Apple.*Mobile.*Safari/ do
-  protected!
+get "/", :agent => IPHONE_USER_AGENT do
+  protected_home!
   erb :home_iphone
 end
 
@@ -218,4 +237,16 @@ end
 get "/rss" do
   content_type :rss
   @@rss_feed.to_s
+end
+
+get "/login" do
+  erb :login_iphone
+end
+
+post "/login" do
+  expire_date = Time.now + 2 * 7 * 24 * 60 * 60
+  response.set_cookie('u', :value => params['username'], :expires => expire_date)
+  response.set_cookie('p', :value => encrypt(params['password']), :expires => expire_date)
+  
+  redirect request.env['SCRIPT_NAME'] + '/'
 end

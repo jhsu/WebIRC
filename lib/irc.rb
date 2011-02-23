@@ -1,5 +1,6 @@
 require "socket"
 require "iconv"
+require "./lib/kanasupport"
 require "./lib/irc_history"
 
 $script_name = "WebIRC client"
@@ -38,7 +39,8 @@ class IRC
       send("NICK #{@connection["nickname"]}")
       send("USER #{@connection["user_name"]} #{user_mask} * :#{@connection["real_name"]}")
       loop do
-          ready = select([@socket, $stdin], nil, nil, nil)
+          # ready = select([@socket, $stdin], nil, nil, nil)
+          ready = select([@socket], nil, nil, nil)
           next unless ready
           for msg in ready[0]
               if msg == $stdin then
@@ -111,6 +113,9 @@ class IRC
   end
   
   def send(text)
+    to = (@connection['encoding'] or 'UTF-8')
+    text = Iconv.conv("#{to}//IGNORE", 'UTF-8', text)
+    text = KanaSupport::iso2022_to_native(text) if to == 'ISO-2022-JP-2'
     begin
       @socket.send "#{text}\n", 0
     rescue
@@ -601,12 +606,15 @@ class IRC
   end
 
   def strip_colours_and_encode_to_utf(text)
-    text.gsub!(/(\cc\d+(?:,\d+)?|\cc|\cb|\cu|\co)/, "")
+    #text.gsub!(/(\cc\d+(?:,\d+)?|\cc|\cb|\cu|\co)/, "")
+    from = (@connection['encoding'] or 'UTF-8')
+    text = KanaSupport::to_iso2022(text) if from == 'ISO-2022-JP-2'
     begin
-      Iconv.conv("utf-8", "utf-8", text)
+      text = Iconv.conv("UTF-8//TRANSLIT", from, text)
     rescue
-      Iconv.conv("utf-8//ignore", "ISO-8859-1", text)
+      text = Iconv.conv("UTF-8//IGNORE", from, text)
     end
+    text
   end
 
   def trim(text)
