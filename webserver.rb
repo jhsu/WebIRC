@@ -1,7 +1,6 @@
-require "lib/webircconfig"
-require "lib/connections"
-require "lib/rss"
-require "rubygems"
+require "./lib/webircconfig"
+require "./lib/connections"
+require "./lib/rss"
 require "sinatra"
 require "json"
 

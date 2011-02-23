@@ -1,4 +1,4 @@
-require "lib/irc"
+require "./lib/irc"
 
 class Connections
   @@count = 0

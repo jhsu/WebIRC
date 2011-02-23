@@ -1,6 +1,6 @@
 require "socket"
 require "iconv"
-require "lib/irc_history"
+require "./lib/irc_history"
 
 $script_name = "WebIRC client"
 $script_version = "0.9"

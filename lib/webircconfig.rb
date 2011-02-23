@@ -1,4 +1,4 @@
-require "ftools"
+# require "ftools"
 require "yaml"
 
 class WebIRCConfig
@@ -7,7 +7,7 @@ class WebIRCConfig
   PUBLIC = "#{HOME}/public"
   
   def initialize
-    File.makedirs(HOME) unless File.exists?(HOME)
+    Dir.mkdir(HOME) unless File.exists?(HOME)
     raise "Could not create #{HOME}" unless File.exists?(HOME)
     @config = (File.exists?(CONFIG) ? YAML::load(File.open(CONFIG).read) : Hash.new)
   end
