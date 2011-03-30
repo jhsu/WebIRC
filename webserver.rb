@@ -1,9 +1,13 @@
-require "./lib/webircconfig"
-require "./lib/connections"
-require "./lib/rss"
-require "sinatra"
-require "json"
+require 'bundler/setup'
+Bundler.require(:default)
+
 require 'digest/sha1'
+
+$:.unshift(File.join(File.dirname(__FILE__), 'lib'))
+
+%w(webircconfig connections rss).each do |file|
+  require file
+end
 
 mime_type :json, "application/json"
 mime_type :rss, "application/rss+xml"
